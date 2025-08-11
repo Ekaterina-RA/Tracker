@@ -1,20 +1,22 @@
 from django.db import models
+
 from users.models import User
 
+
 class Habit(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='habits')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="habits")
     place = models.CharField(max_length=100, help_text="Укажите Ваше местонахождение")
     time = models.TimeField()
     action = models.CharField(max_length=200, help_text="Укажите Ваше действие")
     is_pleasant = models.BooleanField(default=False)
     related_habit = models.ForeignKey(
-        'self',
+        "self",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        limit_choices_to={'is_pleasant': True}
+        limit_choices_to={"is_pleasant": True},
     )
-    frequency = models.PositiveIntegerField(default=1)
+    frequency = models.PositiveSmallIntegerField(default=1)
     reward = models.CharField(max_length=200, blank=True, null=True)
     duration = models.PositiveIntegerField(help_text="Продолжительность в секундах")
     is_public = models.BooleanField(default=False)
@@ -28,4 +30,5 @@ class Habit(models.Model):
 
     def clean(self):
         from .validators import validate_habit
+
         validate_habit(self)

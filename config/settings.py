@@ -9,13 +9,13 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+
 import os
+from datetime import timedelta
 from pathlib import Path
 
-from celery.schedules import crontab
+import drf_spectacular
 from dotenv import load_dotenv
-from datetime import timedelta
-
 
 load_dotenv()
 
@@ -43,12 +43,23 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    'rest_framework',
-    'corsheaders',
-    'drf_spectacular',
-    'users',
-    'habits',
+    "rest_framework",
+    "corsheaders",
+    "drf_spectacular",
+    "django_celery_beat",
+    "users",
+    "habits",
 ]
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -60,16 +71,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-
-REST_FRAMEWORK = {
-    "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
-}
-
-ROOT_URLCONF = 'config.urls'
+ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
     {
@@ -152,33 +154,34 @@ AUTH_USER_MODEL = "users.User"
 # JWT
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
 
 # Telegram
-#TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN')
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # Celery + Redis
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
 CELERY_TIMEZONE = TIME_ZONE
-#CELERY_BEAT_SCHEDULE = {
-    #'deactivate-inactive-users': {
-       # 'task': 'users.tasks.check_inactive_users',
-        #'schedule': crontab(hour=2, minute=0),
-        #'options': {
-           # 'expires': 3600,
-       # },
-    #},
-#}
+# CELERY_BEAT_SCHEDULE = {
+#'deactivate-inactive-users': {
+# 'task': 'users.tasks.check_inactive_users',
+#'schedule': crontab(hour=2, minute=0),
+#'options': {
+# 'expires': 3600,
+# },
+# },
+# }
 
 # Spectacular (docs)
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Habit Tracker API',
-    'DESCRIPTION': 'API for managing atomic habits with Telegram reminders',
-    'VERSION': '1.0.0',
+    "TITLE": "Habit Tracker API",
+    "DESCRIPTION": "API for managing atomic habits with Telegram reminders",
+    "VERSION": "1.0.0",
 }
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
