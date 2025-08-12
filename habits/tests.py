@@ -6,6 +6,68 @@ from habits.models import Habit
 from users.models import User
 
 
+class HabitAPITest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="testuser", password="pass")
+        self.other_user = User.objects.create_user(username="other", password="pass")
+        self.client.force_authenticate(user=self.user)
+
+    def test_create_habit(self):
+        url = reverse("habit-list")
+        data = {
+            "place": "дома",
+            "time": "08:00:00",
+            "action": "прыжки",
+            "duration": 60,
+            "frequency": 1,
+        }
+        response = self.client.post(url, data, format="json")
+        if response.status_code != 201:
+            print("Ошибка создания привычки:", response.data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Habit.objects.count(), 1)
+        self.assertEqual(Habit.objects.first().user, self.user)
+
+    def test_user_can_only_see_own_habits(self):
+        Habit.objects.create(
+            user=self.other_user,
+            place="там",
+            time="08:00:00",
+            action="бег",
+            duration=60,
+            frequency=1,
+        )
+        response = self.client.get(reverse("habit-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 0)
+
+    def test_cannot_create_with_duration_over_120(self):
+        data = {
+            "place": "дома",
+            "time": "08:00:00",
+            "action": "бег",
+            "duration": 150,
+            "frequency": 1,
+        }
+        response = self.client.post(reverse("habit-list"), data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("duration", response.data)
+
+    def test_public_habits_visible(self):
+        Habit.objects.create(
+            user=self.other_user,
+            place="парк",
+            time="07:00:00",
+            action="зарядка",
+            duration=120,
+            frequency=1,
+            is_public=True,
+        )
+        response = self.client.get(reverse("habit-public"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 1)
+
+
 class PublicHabitsTest(APITestCase):
     def setUp(self):
         # Пользователи
