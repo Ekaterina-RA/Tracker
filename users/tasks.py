@@ -1,9 +1,12 @@
-from celery import shared_task
-from django.conf import settings
-from django_celery_beat.models import PeriodicTask, IntervalSchedule
 import json
-import requests
+
+from celery import shared_task
+from celery.worker.state import requests
+from django_celery_beat.models import CrontabSchedule, PeriodicTask
+
+from config import settings
 from habits.models import Habit
+
 
 @shared_task
 def send_telegram_reminder(habit_id):
@@ -21,36 +24,31 @@ def send_telegram_reminder(habit_id):
         )
 
         url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
-        data = {'chat_id': user.telegram_chat_id, 'text': message}
+        data = {"chat_id": user.telegram_chat_id, "text": message}
         requests.post(url, data=data)
     except Habit.DoesNotExist:
         pass
 
-def schedule_habit_reminder(habit):
-    """
-    Создаёт или обновляет периодическую задачу для напоминания о привычке.
-    """
-    total_seconds = habit.time.hour * 3600 + habit.time.minute * 60 + habit.time.second
-    every = habit.frequency
 
-    # Создаём интервал
-    schedule, created = IntervalSchedule.objects.get_or_create(
-        every=every,
-        period=IntervalSchedule.DAYS,
+def schedule_habit_reminder(habit):
+    time = habit.time
+
+    # Создаём crontab: каждый день в habit.time
+    schedule, created = CrontabSchedule.objects.get_or_create(
+        hour=time.hour,
+        minute=time.minute,
+        day_of_week="*",
+        month_of_year="*",
+        day_of_month="*",
     )
 
-    # Удаляем старую задачу, если есть
-    try:
-        old_task = PeriodicTask.objects.get(name=f"habit_reminder_{habit.id}")
-        old_task.delete()
-    except PeriodicTask.DoesNotExist:
-        pass
+    # Удаляем старую задачу
+    PeriodicTask.objects.filter(name=f"habit_reminder_{habit.id}").delete()
 
-    # Создаём новую задачу
+    # Создаём новую
     PeriodicTask.objects.create(
-        interval=schedule,
+        crontab=schedule,
         name=f"habit_reminder_{habit.id}",
         task="tasks.send_telegram_reminder",
         args=json.dumps([habit.id]),
-        start_time=habit.time,
     )

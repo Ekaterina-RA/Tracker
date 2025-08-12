@@ -184,4 +184,4 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "API for managing atomic habits with Telegram reminders",
     "VERSION": "1.0.0",
 }
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"

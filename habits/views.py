@@ -1,11 +1,14 @@
 from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
+
 from users.tasks import schedule_habit_reminder
+
 from .models import Habit
 from .paginator import HabitPagination
 from .permissions import IsOwnerOrReadOnly
 from .serializers import HabitSerializer, HabitShortSerializer
-from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+
 
 class HabitViewSet(viewsets.ModelViewSet):
     serializer_class = HabitSerializer
@@ -30,7 +33,7 @@ class HabitViewSet(viewsets.ModelViewSet):
             return HabitShortSerializer
         return super().get_serializer_class()
 
-    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    @action(detail=False, methods=["get"], permission_classes=[AllowAny])
     def public(self, request):
         queryset = self.get_queryset()
         page = self.paginate_queryset(queryset)
